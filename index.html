@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Seven Statements — 일곱 개의 진술</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10182B; --ink2:#1B2440; --ink3:#242F52; --line:#2E3A5F;
+    --paper:#F8F4E8; --paper-shade:#EDE6D2; --paper-ink:#2A2416;
+    --seal:#C73E2E; --verdict:#3563AD; --gold:#D9A441; --mut:#8B94AD; --ok:#4CAF7D;
+    --body:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif;
+    --disp:'Gowun Batang','Apple SD Gothic Neo',serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:var(--body);background:var(--ink);color:#E8EBF4;display:flex;justify-content:center;line-height:1.55}
+  #app{width:100%;max-width:430px;min-height:100dvh;position:relative;display:flex;flex-direction:column;
+    background:radial-gradient(120% 60% at 50% -10%, #1C2748 0%, transparent 60%), var(--ink)}
+  .screen{display:none;flex-direction:column;flex:1;padding:20px 18px 96px}
+  .screen.active{display:flex}
+  .btn{display:block;width:100%;padding:15px;border:none;border-radius:12px;font-family:var(--body);
+    font-size:16px;font-weight:700;cursor:pointer;background:var(--seal);color:#fff;transition:transform .08s,opacity .2s}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.35;cursor:default}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--mut);font-weight:500}
+  .btn.blue{background:var(--verdict)}
+  .btn.sm{width:auto;padding:8px 14px;font-size:13px;border-radius:9px;display:inline-block}
+  .eyebrow{font-size:11px;letter-spacing:.22em;color:var(--mut);text-transform:uppercase;margin-bottom:6px}
+  h1.title{font-family:var(--disp);font-weight:700;font-size:26px;line-height:1.3}
+  .sub{color:var(--mut);font-size:13.5px;margin-top:6px}
+  /* 공지 배너 */
+  #notice{display:none;position:sticky;top:0;z-index:45;background:rgba(217,164,65,.14);
+    border-bottom:1px solid rgba(217,164,65,.4);color:#EBD8AC;font-size:13px;padding:10px 16px}
+  /* 진술서 종이 카드 */
+  .paper{position:relative;background:var(--paper);color:var(--paper-ink);border-radius:6px;
+    padding:16px 16px 14px;box-shadow:0 3px 0 var(--paper-shade), 0 10px 22px rgba(0,0,0,.35)}
+  .paper::before{content:'';position:absolute;top:0;right:0;width:0;height:0;border-style:solid;
+    border-width:0 18px 18px 0;border-color:transparent var(--ink) transparent transparent}
+  .paper .no{font-family:var(--disp);font-size:11px;color:#9A8F76;letter-spacing:.15em;margin-bottom:5px}
+  .paper .stmt{font-family:var(--disp);font-size:16.5px;font-weight:700;line-height:1.5}
+  .paper.selectable{cursor:pointer;transition:transform .1s}
+  .paper.selectable:active{transform:scale(.98)}
+  .paper.selected{outline:3px solid var(--seal);outline-offset:2px}
+  .stamp{position:absolute;right:12px;bottom:8px;width:62px;height:62px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:17px;
+    transform:rotate(-14deg) scale(0);opacity:.92;border:3px double currentColor;
+    animation:stampIn .38s cubic-bezier(.2,1.6,.4,1) forwards}
+  .stamp.lie{color:var(--seal)} .stamp.truth{color:var(--verdict)}
+  @keyframes stampIn{0%{transform:rotate(-14deg) scale(2.2);opacity:0}
+    60%{transform:rotate(-14deg) scale(.92);opacity:.95}100%{transform:rotate(-14deg) scale(1);opacity:.92}}
+  /* 로그인 */
+  #login{justify-content:center;text-align:center;padding-bottom:40px}
+  .logo-seal{width:88px;height:88px;margin:0 auto 22px;border-radius:50%;border:3px double var(--seal);
+    color:var(--seal);display:flex;align-items:center;justify-content:center;font-family:var(--disp);
+    font-size:40px;font-weight:700;transform:rotate(-8deg)}
+  .logo-title{font-family:var(--disp);font-size:30px;font-weight:700}
+  .logo-sub{font-family:var(--disp);color:var(--mut);font-size:14px;margin:8px 0 34px}
+  .field{margin-bottom:12px;text-align:left}
+  .field label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}
+  .field input{width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);
+    background:var(--ink2);color:#fff;font-size:15px;font-family:var(--body)}
+  .field input:focus{outline:none;border-color:var(--gold)}
+  /* 작가의 방 */
+  .progress-wrap{display:flex;align-items:center;gap:12px;margin:18px 0 14px}
+  .dots{display:flex;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line)}
+  .dot.filled-t{background:var(--verdict);border-color:var(--verdict)}
+  .dot.filled-l{background:var(--seal);border-color:var(--seal)}
+  .slot{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;background:var(--ink2);
+    border:1.5px solid var(--line);margin-bottom:9px;cursor:pointer}
+  .slot:active{background:var(--ink3)}
+  .slot .tag{flex-shrink:0;font-family:var(--disp);font-size:12px;font-weight:700;width:44px;height:44px;
+    border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px double var(--verdict);
+    color:var(--verdict);transform:rotate(-8deg);text-align:center;line-height:1.2}
+  .slot.lie .tag{border-color:var(--seal);color:var(--seal)}
+  .slot .txt{flex:1;min-width:0}
+  .slot .txt .st{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .slot .txt .st.empty{color:var(--mut);font-style:italic}
+  .slot .chk{color:var(--ok);font-size:18px;flex-shrink:0}
+  /* 바텀시트 */
+  #sheet-bg{display:none;position:fixed;inset:0;background:rgba(5,8,18,.72);z-index:70;justify-content:center;align-items:flex-end}
+  #sheet-bg.open{display:flex}
+  #sheet{width:100%;max-width:430px;background:var(--ink2);border-radius:20px 20px 0 0;
+    padding:22px 20px 26px;border-top:1.5px solid var(--line);animation:sheetUp .22s ease-out}
+  @keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+  #sheet .guide{background:var(--ink);border-radius:10px;padding:12px 14px;margin:12px 0;
+    font-size:13.5px;color:#C9CFE0;border-left:3px solid var(--gold)}
+  #sheet textarea{width:100%;height:86px;padding:12px;border-radius:10px;resize:none;
+    border:1.5px solid var(--line);background:var(--ink);color:#fff;font-size:15px;font-family:var(--body)}
+  #sheet textarea:focus{outline:none;border-color:var(--gold)}
+  .sheet-actions{display:flex;gap:10px;margin-top:14px}
+  /* 게임 */
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;
+    border-radius:12px;background:var(--ink2);border:1.5px solid var(--line);margin-bottom:16px}
+  .coin{font-weight:800;font-size:17px;color:var(--gold)}
+  .coin small{font-weight:500;font-size:11px;color:var(--mut);margin-left:2px}
+  .record{font-size:12.5px;color:var(--mut)} .record b{color:#E8EBF4}
+  .person{display:flex;align-items:center;gap:12px;padding:13px 14px;margin-bottom:9px;
+    background:var(--ink2);border:1.5px solid var(--line);border-radius:12px}
+  .avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+    justify-content:center;font-weight:700;font-size:15px;background:var(--ink3);color:var(--gold)}
+  .person .info{flex:1;min-width:0}
+  .person .nm{font-weight:700;font-size:14.5px}
+  .person .tm{font-size:12px;color:var(--mut)}
+  .empty-hint{text-align:center;color:var(--mut);font-size:13.5px;padding:36px 10px}
+  /* 탭바 */
+  #tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    background:rgba(16,24,43,.94);backdrop-filter:blur(8px);border-top:1.5px solid var(--line);z-index:40;
+    display:none;justify-content:space-around;padding:8px 0 max(10px, env(safe-area-inset-bottom))}
+  #tabbar.show{display:flex}
+  .tab{flex:1;text-align:center;padding:6px 0;cursor:pointer;color:var(--mut);font-size:11px;
+    border:none;background:none;font-family:var(--body)}
+  .tab .ic{font-size:20px;display:block;margin-bottom:2px;filter:grayscale(1);opacity:.6}
+  .tab.on{color:#fff} .tab.on .ic{filter:none;opacity:1}
+  /* 매칭 요청 수신 배너 */
+  #incoming{display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    z-index:65;background:var(--ink2);border-bottom:2px solid var(--gold);padding:16px 18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);animation:sheetDown .25s ease-out}
+  @keyframes sheetDown{from{transform:translate(-50%,-30px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+  #incoming .who{font-weight:800;font-size:16px;margin-bottom:10px}
+  #incoming .row{display:flex;gap:9px}
+  /* 만남 화면 */
+  #meeting{display:none;position:fixed;inset:0;z-index:60;justify-content:center}
+  #meeting.open{display:flex}
+  #meeting .inner{width:100%;max-width:430px;min-height:100dvh;display:flex;flex-direction:column;
+    background:radial-gradient(120% 50% at 50% -5%, #2A1E1C 0%, transparent 55%), var(--ink);
+    padding:18px 18px 26px;overflow-y:auto}
+  .phasebar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .phase-pill{font-size:11px;padding:5px 11px;border-radius:99px;border:1.5px solid var(--line);color:var(--mut)}
+  .phase-pill.on{border-color:var(--seal);color:#fff;background:rgba(199,62,46,.16)}
+  .meet-head{margin-bottom:14px}
+  .meet-head .role{font-family:var(--disp);font-size:21px;font-weight:700}
+  .meet-head .hint{font-size:13px;color:var(--mut);margin-top:4px}
+  .papers{display:flex;flex-direction:column;gap:11px;margin:14px 0}
+  .confbtns{display:flex;gap:9px;margin-top:12px}
+  .confbtn{flex:1;padding:13px 6px;border-radius:12px;border:1.5px solid var(--line);background:var(--ink2);
+    color:#fff;font-family:var(--body);font-size:13px;font-weight:700;cursor:pointer}
+  .confbtn small{display:block;font-weight:500;font-size:11px;color:var(--gold);margin-top:3px}
+  .confbtn.selected{border-color:var(--seal);background:rgba(199,62,46,.18)}
+  .confbtn:disabled{opacity:.3}
+  .waiting{text-align:center;padding:30px 10px;color:var(--mut);font-size:14px}
+  .spinner{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--line);
+    border-top-color:var(--seal);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .settle{display:flex;justify-content:space-between;align-items:center;background:var(--ink2);
+    border:1.5px solid var(--line);border-radius:12px;padding:13px 15px;margin-top:10px;font-size:14px}
+  .settle .amt{font-weight:800;font-size:16px}
+  .amt.plus{color:var(--ok)} .amt.minus{color:var(--seal)}
+  .bigcoin{text-align:center;font-size:15px;color:var(--mut);margin:16px 0 4px}
+  .bigcoin b{font-size:28px;color:var(--gold);font-family:var(--disp)}
+  .meet-cancel{margin-top:auto;padding-top:18px}
+  /* 랭킹 */
+  .rank-tabs{display:flex;gap:8px;margin-bottom:14px}
+  .rank-tab{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--ink2);
+    color:var(--mut);font-family:var(--body);font-size:13.5px;font-weight:700;cursor:pointer}
+  .rank-tab.on{border-color:var(--gold);color:var(--gold)}
+  .rank-row{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;
+    background:var(--ink2);border:1.5px solid var(--line);border-radius:11px;font-size:14px}
+  .rank-row.me{border-color:var(--gold);background:rgba(217,164,65,.08)}
+  .rank-row .pos{font-family:var(--disp);font-weight:700;width:26px;color:var(--mut)}
+  .rank-row .nm{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rank-row .val{color:var(--gold);font-weight:800}
+  /* 내 문장 */
+  .mystmt{background:var(--ink2);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px}
+  .badge{font-size:10.5px;padding:2.5px 8px;border-radius:99px;font-weight:700}
+  .badge.t{background:rgba(53,99,173,.2);color:#7FA5DE}
+  .badge.l{background:rgba(199,62,46,.2);color:#E0796C}
+  .badge.edited{background:rgba(217,164,65,.18);color:var(--gold)}
+  .mystmt .top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .mystmt .body{font-size:14px}
+  .mystmt .stat{font-size:12px;color:var(--mut);margin-top:6px}
+  .mystmt .stat.danger{color:#E0796C}
+  .ticket-bar{display:flex;align-items:center;justify-content:space-between;background:var(--ink2);
+    border:1.5px dashed var(--gold);border-radius:12px;padding:12px 15px;margin-bottom:14px;font-size:13.5px}
+  /* 결과 모드 */
+  #result .hero{text-align:center;margin:26px 0}
+  #result .hero .big{font-family:var(--disp);font-size:24px;font-weight:700;margin-top:8px}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}
+  .result-card{background:var(--ink2);border:1.5px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+  .result-card .v{font-family:var(--disp);font-size:22px;font-weight:700;color:var(--gold)}
+  .result-card .k{font-size:12px;color:var(--mut);margin-top:3px}
+  /* 토스트 */
+  #toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);
+    background:#fff;color:var(--ink);padding:11px 18px;border-radius:99px;font-size:13.5px;font-weight:700;
+    opacity:0;transition:.25s;z-index:99;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:none}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .center-wait{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;color:var(--mut)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="notice"></div>
+
+  <!-- ═══════ 로그인 ═══════ -->
+  <section class="screen active" id="login">
+    <div class="logo-seal">柒</div>
+    <div class="logo-title">The Seven Statements</div>
+    <div class="logo-sub">일곱 개의 진술 — 당신의 일곱 문장이 당신을 말해줍니다</div>
+    <div class="field"><label>행사 코드</label><input id="in-code" placeholder="진행자에게 안내받은 코드" autocomplete="off"></div>
+    <div class="field"><label>이름</label><input id="in-name" placeholder="예: 정인혁" autocomplete="off"></div>
+    <div class="field"><label>소속</label><input id="in-team" placeholder="예: 조직문화팀" autocomplete="off"></div>
+    <div style="height:10px"></div>
+    <button class="btn" id="btn-login" onclick="doLogin()">입장하기</button>
+    <p class="sub" style="text-align:center;margin-top:14px">같은 휴대폰·브라우저로 다시 접속하면<br>진행 상황이 자동으로 이어집니다</p>
+  </section>
+
+  <!-- ═══════ 작가의 방 ═══════ -->
+  <section class="screen" id="writer">
+    <div class="eyebrow">작가의 방</div>
+    <h1 class="title">나의 일곱 문장</h1>
+    <p class="sub">진실 네 개, 거짓 세 개. 심문을 버틸 수 있게 쓰세요.</p>
+    <div class="progress-wrap">
+      <div class="dots" id="dots"></div>
+      <div style="font-size:13px;color:var(--mut)"><b id="prog-n" style="color:#fff">0</b> / 7 완성</div>
+    </div>
+    <div id="slots"></div>
+    <div style="height:12px"></div>
+    <button class="btn blue" id="btn-ready" disabled onclick="setReady()">준비 완료</button>
+    <p class="sub" style="text-align:center" id="ready-msg"></p>
+  </section>
+
+  <!-- ═══════ 게임 모드 ═══════ -->
+  <section class="screen" id="game">
+    <div class="statusbar">
+      <div class="coin">🪙 <span id="coin">-</span><small>코인</small></div>
+      <div class="record">추리 <b id="rec-w">0</b>승 <b id="rec-l">0</b>패 · 방어 <b id="rec-d">0</b>승</div>
+    </div>
+    <div id="tab-home">
+      <div class="eyebrow">게임 진행 중</div>
+      <h1 class="title" style="font-size:21px">지금 만날 수 있는 사람</h1>
+      <p class="sub" style="margin-bottom:14px">상대를 찾아가 요청을 보내세요.</p>
+      <div id="people"></div>
+    </div>
+    <div id="tab-rank" style="display:none">
+      <div class="eyebrow">LIVE RANKING</div>
+      <h1 class="title" style="font-size:21px;margin-bottom:14px">명예의 전당</h1>
+      <div class="rank-tabs">
+        <button class="rank-tab on" id="rt-d" onclick="showRank('d')">🕵️ 명탐정</button>
+        <button class="rank-tab" id="rt-a" onclick="showRank('a')">🎭 명배우</button>
+      </div>
+      <p class="sub" style="margin-bottom:12px" id="rank-desc">추리 성공으로 딴 코인의 누적 총액</p>
+      <div id="rank-list"></div>
+    </div>
+    <div id="tab-my" style="display:none">
+      <div class="eyebrow">MY STATEMENTS</div>
+      <h1 class="title" style="font-size:21px;margin-bottom:14px">내 일곱 문장</h1>
+      <div class="ticket-bar">
+        <span>🎟️ 리라이트 티켓 <b id="tickets">-</b>장</span>
+        <span style="color:var(--mut);font-size:12px" id="ticket-info"></span>
+      </div>
+      <div id="my-list"></div>
+    </div>
+  </section>
+
+  <!-- ═══════ 결과 모드 ═══════ -->
+  <section class="screen" id="result">
+    <div class="hero">
+      <div class="logo-seal" style="width:64px;height:64px;font-size:28px">柒</div>
+      <div class="eyebrow" style="margin-top:14px">GAME OVER</div>
+      <div class="big">오늘의 나의 기록</div>
+    </div>
+    <div class="result-grid" id="result-grid"></div>
+    <h1 class="title" style="font-size:18px;margin:14px 0 10px">🕵️ 명탐정 TOP 5</h1>
+    <div id="final-rank-d"></div>
+    <h1 class="title" style="font-size:18px;margin:18px 0 10px">🎭 명배우 TOP 5</h1>
+    <div id="final-rank-a"></div>
+  </section>
+
+  <!-- 하단 탭바 -->
+  <nav id="tabbar">
+    <button class="tab on" id="tb-home" onclick="switchTab('home')"><span class="ic">🏠</span>홈</button>
+    <button class="tab" id="tb-rank" onclick="switchTab('rank')"><span class="ic">🏆</span>랭킹</button>
+    <button class="tab" id="tb-my" onclick="switchTab('my')"><span class="ic">📜</span>내 문장</button>
+  </nav>
+
+  <!-- 매칭 요청 수신 -->
+  <div id="incoming">
+    <div class="who" id="inc-who"></div>
+    <div class="row">
+      <button class="btn ghost" style="flex:1" onclick="answerRequest(false)">거절</button>
+      <button class="btn" style="flex:2" onclick="answerRequest(true)">수락하고 만나기</button>
+    </div>
+  </div>
+
+  <!-- 만남 화면 -->
+  <div id="meeting"><div class="inner">
+    <div class="phasebar">
+      <div class="phase-pill" id="pp1">전반전</div>
+      <div class="phase-pill" id="pp2">후반전</div>
+      <div class="phase-pill" id="pp3">공개</div>
+    </div>
+    <div id="meet-body"></div>
+    <div class="meet-cancel" id="meet-cancel">
+      <button class="btn ghost" onclick="cancelMeeting()">만남 취소 (상대가 자리를 떠난 경우)</button>
+    </div>
+  </div></div>
+
+  <!-- 진술 작성 바텀시트 -->
+  <div id="sheet-bg" onclick="if(event.target===this)closeSheet()">
+    <div id="sheet">
+      <div class="eyebrow" id="sheet-eyebrow"></div>
+      <h1 class="title" style="font-size:19px" id="sheet-title"></h1>
+      <div class="guide" id="sheet-guide"></div>
+      <textarea id="sheet-input" placeholder="한 문장으로 적어주세요"></textarea>
+      <div class="sheet-actions">
+        <button class="btn ghost" style="flex:1" onclick="closeSheet()">닫기</button>
+        <button class="btn" style="flex:2" onclick="saveStatement()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection,
+  onSnapshot, query, where, serverTimestamp, increment, arrayUnion }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ══════════ 상태 ══════════ */
+let uid = null;
+let me = null;            // participants/{uid} 문서 (실시간)
+let cfg = null;           // config/game 문서 (실시간)
+let myMeetingId = null;   // 현재 진행 중 만남
+let meetUnsub = null;
+let peopleCache = [];     // 전체 참가자 캐시
+let localSlots = load('slots') || Array(7).fill(null).map((_,i)=>({
+  id: rid(), text:'', isLie:i>=4, edited:false }));
+let incomingId = null;
+let settledLocal = load('settled') || {};   // meetingId → true (정산 중복 방지)
+let lastRenderedPhase = '';
+
+const BET = { hi:{label:'🔥 확신한다', amt:30}, mid:{label:'🤔 아마도', amt:20}, lo:{label:'🎲 찍는다', amt:10} };
+const GUIDE_T = [
+  '남들이 잘 안 믿는 나의 <b>진짜 경험</b>은? (여행, 사건, 우연)',
+  '나의 <b>의외의 특기·자격·이력</b>은?',
+  '학창 시절, <b>나를 아는 사람만 아는 사실</b>은?',
+  '가족·취미에 얽힌 <b>특이한 이야기</b>는?',
+];
+const GUIDE_L = [
+  '<b>경험형 거짓</b> — "나는 ___한 적이 있다" 꼴로. 시기·장소를 미리 정해두세요.',
+  '<b>능력형 거짓</b> — "나는 ___를 할 줄 안다" 꼴로. 시연 요구를 어떻게 피할지 준비!',
+  '<b>관계·이력형 거짓</b> — "나는 ___였다 / ___가 있다" 꼴로.',
+];
+
+/* ══════════ 유틸 ══════════ */
+const $ = id => document.getElementById(id);
+function rid(){ return Math.random().toString(36).slice(2,10); }
+function toast(m){ const t=$('toast'); t.innerHTML=m; t.classList.add('show');
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2400); }
+function vib(p){ if(navigator.vibrate) navigator.vibrate(p||30); }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active'); }
+function save(k,v){ localStorage.setItem('7s_'+k, JSON.stringify(v)); }
+function load(k){ try{ return JSON.parse(localStorage.getItem('7s_'+k)); }catch(e){ return null; } }
+function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
+function pick(a,n){ return shuffle(a).slice(0,n); }
+const setts = () => (cfg && cfg.settings) || { initialCoin:100, ticketCount:2, ticketCost:20, refillFloor:10, betUnlockSec:60, eventCode:'' };
+
+/* ══════════ 인증 & 부팅 ══════════ */
+onAuthStateChanged(auth, async user => {
+  if(!user){ signInAnonymously(auth).catch(e=>toast('인증 실패: '+e.message)); return; }
+  uid = user.uid;
+  // 설정 실시간 구독
+  onSnapshot(doc(db,'config','game'), snap => {
+    cfg = snap.exists() ? snap.data() : null;
+    $('notice').style.display = cfg && cfg.notice ? 'block' : 'none';
+    if(cfg && cfg.notice) $('notice').textContent = '📢 ' + cfg.notice;
+    route();
+  });
+  // 내 참가자 문서 구독 (재접속 시 자동 복귀)
+  onSnapshot(doc(db,'participants',uid), snap => {
+    me = snap.exists() ? snap.data() : null;
+    if(me){ renderStatus(); route(); }
+  });
+  // 전체 참가자 구독 (홈 목록·랭킹)
+  onSnapshot(collection(db,'participants'), qs => {
+    peopleCache = qs.docs.map(d=>({uid:d.id, ...d.data()}));
+    if(me && cfg && cfg.phase==='playing'){ renderPeople(); renderRank(); }
+    if(cfg && cfg.phase==='ended') renderResult();
+  });
+  // 나와 관련된 만남 구독
+  const mq = query(collection(db,'meetings'), where('members','array-contains', user.uid));
+  onSnapshot(mq, qs => {
+    qs.docChanges().forEach(ch => handleMeetingDoc(ch.doc.id, ch.doc.data()));
+  });
+});
+
+/* 화면 라우팅: 관리자의 phase + 내 상태에 따라 자동 전환 */
+function route(){
+  if(!cfg || !me){ return; }                       // 로그인 화면 유지
+  if(cfg.phase==='ended'){ closeMeetingUI(); $('tabbar').classList.remove('show'); show('result'); renderResult(); return; }
+  if(!me.ready){ show('writer'); renderWriter(); return; }   // 작성 미완 → 작가의 방
+  if(cfg.phase==='playing'){ $('tabbar').classList.add('show'); show('game'); renderPeople(); }
+  else { // writing 단계에서 준비완료 상태 → 대기
+    show('writer'); renderWriter();
+  }
+}
+
+/* ══════════ 로그인 ══════════ */
+window.doLogin = async function(){
+  if(!uid){ toast('연결 중이에요, 잠시 후 다시 시도해주세요'); return; }
+  if(!cfg){ toast('행사가 아직 열리지 않았어요 (관리자 미설정)'); return; }
+  const code = $('in-code').value.trim();
+  const nm = $('in-name').value.trim(), tm = $('in-team').value.trim();
+  if(setts().eventCode && code !== setts().eventCode){ toast('행사 코드가 올바르지 않아요'); return; }
+  if(!nm){ toast('이름을 입력해주세요'); return; }
+  $('btn-login').disabled = true;
+  const s = setts();
+  await setDoc(doc(db,'participants',uid), {
+    name:nm, team:tm||'', ready:false, done:0, alive:true, status:'idle',
+    coin:s.initialCoin, tickets:s.ticketCount,
+    recW:0, recL:0, recD:0, earnD:0, earnA:0, metWith:[],
+    joinedAt: serverTimestamp(),
+  });
+  save('name',nm);
+  toast(`${nm}님, 작가의 방으로 이동합니다 ✍️`);
+};
+
+/* ══════════ 작가의 방 ══════════ */
+let editIdx = -1;
+function renderWriter(){
+  const done = localSlots.filter(s=>s.text).length;
+  $('prog-n').textContent = done;
+  $('dots').innerHTML = localSlots.map(s=>
+    `<div class="dot ${s.text ? (s.isLie?'filled-l':'filled-t') : ''}"></div>`).join('');
+  $('slots').innerHTML = localSlots.map((s,i)=>`
+    <div class="slot ${s.isLie?'lie':''}" onclick="openSheet(${i})">
+      <div class="tag">${s.isLie?'거짓':'진실'}<br>${s.isLie?i-3:i+1}</div>
+      <div class="txt"><div class="st ${s.text?'':'empty'}">${esc(s.text)||'탭해서 작성하기'}</div></div>
+      ${s.text?'<div class="chk">✓</div>':''}
+    </div>`).join('');
+  if(me && me.ready){
+    $('btn-ready').textContent = '✓ 준비 완료';
+    $('btn-ready').disabled = true;
+    $('ready-msg').textContent = cfg && cfg.phase==='playing'
+      ? '' : '진행자가 게임을 시작하면 화면이 자동 전환됩니다';
+  } else {
+    $('btn-ready').textContent = '준비 완료';
+    $('btn-ready').disabled = done!==7;
+    $('ready-msg').textContent = done===7 ? '준비 완료를 누르면 게임에 참여할 수 있어요'
+      : `일곱 문장을 모두 완성해주세요 (${7-done}개 남음)`;
+  }
+}
+function esc(t){ return (t||'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+window.openSheet = function(i){
+  editIdx = i;
+  const s = localSlots[i], lieN=i-4, tN=i;
+  $('sheet-eyebrow').textContent = s.isLie ? `거짓 ${lieN+1} / 3` : `진실 ${tN+1} / 4`;
+  $('sheet-title').textContent = s.isLie ? '그럴듯한 거짓을 지어볼까요' : '믿기 어려운 진실을 꺼내볼까요';
+  $('sheet-guide').innerHTML = s.isLie ? GUIDE_L[lieN] : GUIDE_T[tN];
+  $('sheet-input').value = s.text;
+  $('sheet-bg').classList.add('open');
+  setTimeout(()=>$('sheet-input').focus(),150);
+};
+window.closeSheet = function(){ $('sheet-bg').classList.remove('open'); };
+window.saveStatement = async function(){
+  const v = $('sheet-input').value.trim();
+  if(!v){ toast('문장을 입력해주세요'); return; }
+  if(v.length<5){ toast('조금만 더 구체적으로 써볼까요'); return; }
+  const s = localSlots[editIdx];
+  const isGameEdit = me && me.ready;   // 준비완료 이후의 수정 = 리라이트 티켓
+  if(isGameEdit && s.text !== v){
+    if(!s.isLie){ toast('진실 문장은 수정할 수 없어요'); return; }
+    if(myMeetingId){ toast('만남 중에는 수정할 수 없어요'); return; }
+    const cost = setts().ticketCost;
+    if((me.tickets||0)<=0){ toast('리라이트 티켓을 모두 사용했어요'); return; }
+    if(me.coin < cost){ toast(`코인이 부족해요 (수정 비용 ${cost})`); return; }
+    s.text = v; s.edited = true; save('slots', localSlots);
+    await pushStatements();
+    await updateDoc(doc(db,'answers',uid), { ['stats.'+s.id]: {tried:0, caught:0} });
+    await updateDoc(doc(db,'participants',uid), { tickets: increment(-1), coin: increment(-cost) });
+    toast(`🎟️ 티켓 사용! (-${cost}코인)`);
+    closeSheet(); renderMy();
+    return;
+  }
+  s.text = v; save('slots', localSlots);
+  if(me && !me.ready){
+    const done = localSlots.filter(x=>x.text).length;
+    updateDoc(doc(db,'participants',uid), { done });   // 관리자 모니터링용
+  }
+  closeSheet(); renderWriter();
+};
+window.setReady = async function(){
+  if(localSlots.some(s=>!s.text)) return;
+  // 저장 순서: 문장(셔플 공개) → 정답(본인 전용) → ready
+  await pushStatements();
+  await setDoc(doc(db,'answers',uid), {
+    lies: localSlots.filter(s=>s.isLie).map(s=>s.id),
+    stats: Object.fromEntries(localSlots.filter(s=>s.isLie).map(s=>[s.id,{tried:0,caught:0}])),
+  });
+  await updateDoc(doc(db,'participants',uid), { ready:true, done:7 });
+  vib(50); toast('준비 완료! 게임 시작을 기다립니다');
+};
+async function pushStatements(){
+  // 진실/거짓 순서가 드러나지 않게 셔플해서 저장
+  const items = shuffle(localSlots.map(s=>({ id:s.id, text:s.text, edited:!!s.edited })));
+  await setDoc(doc(db,'statements',uid), { items, owner:uid });
+}
+
+/* ══════════ 게임: 상태바 & 탭 ══════════ */
+function renderStatus(){
+  if(!me) return;
+  $('coin').textContent = me.coin;
+  $('rec-w').textContent = me.recW; $('rec-l').textContent = me.recL; $('rec-d').textContent = me.recD;
+  $('tickets').textContent = me.tickets;
+  $('ticket-info').textContent = `거짓만 수정 가능 · 1회 ${setts().ticketCost}코인`;
+}
+window.switchTab = function(t){
+  ['home','rank','my'].forEach(x=>{
+    $('tab-'+x).style.display = x===t?'block':'none';
+    $('tb-'+x).classList.toggle('on', x===t);
+  });
+  if(t==='rank') renderRank();
+  if(t==='my') renderMy();
+};
+
+/* ══════════ 홈: 매칭 ══════════ */
+function renderPeople(){
+  if(!me) return;
+  const met = new Set(me.metWith||[]);
+  const list = peopleCache.filter(p =>
+    p.uid!==uid && p.ready && p.alive!==false && p.status==='idle' && !met.has(p.uid));
+  $('people').innerHTML = list.length ? list.map(p=>`
+    <div class="person">
+      <div class="avatar">${esc(p.name[0])}</div>
+      <div class="info"><div class="nm">${esc(p.name)}</div><div class="tm">${esc(p.team)}</div></div>
+      <button class="btn sm" onclick="requestMeet('${p.uid}')">요청</button>
+    </div>`).join('')
+  : `<div class="empty-hint">지금 만날 수 있는 사람이 없어요.<br>대화 중이거나, 이미 모두 만났을 수 있어요.</div>`;
+}
+window.requestMeet = async function(target){
+  if(me.status!=='idle'){ toast('이미 만남이 진행 중이에요'); return; }
+  const tp = peopleCache.find(p=>p.uid===target);
+  if(!tp || tp.status!=='idle'){ toast('상대가 방금 다른 만남을 시작했어요'); renderPeople(); return; }
+  const ref = await addDoc(collection(db,'meetings'), {
+    a:uid, b:target, aName:me.name, bName:tp.name,
+    members:[uid,target], status:'pending', phase:'draw',
+    firstMover: Math.random()<.5 ? 'a' : 'b',
+    createdAt: serverTimestamp(),
+  });
+  myMeetingId = ref.id;
+  toast(`${tp.name}님에게 요청을 보냈어요`);
+};
+
+/* ══════════ 만남 문서 핸들러 (실시간) ══════════ */
+function handleMeetingDoc(id, m){
+  const iAmA = m.a===uid, role = iAmA?'a':'b', opp = iAmA?'b':'a';
+  // 1) 나에게 온 요청 (게임 중 + 내가 대기 상태일 때만)
+  if(m.status==='pending' && m.b===uid){
+    if(!cfg || cfg.phase!=='playing' || !me || me.status!=='idle') return;
+    if((me.metWith||[]).includes(m.a)) return;
+    incomingId = id;
+    $('inc-who').textContent = `${m.aName}님이 만남을 요청했어요`;
+    $('incoming').style.display='block'; vib([60,80,60]);
+    return;
+  }
+  // 2) 내가 보낸 요청이 거절/취소됨
+  if((m.status==='declined'||m.status==='cancelled') && myMeetingId===id){
+    closeMeetingUI();
+    toast(m.status==='declined' ? '상대가 요청을 거절했어요' : '만남이 취소되었어요');
+    if(me.status==='busy') updateDoc(doc(db,'participants',uid), {status:'idle'});
+    return;
+  }
+  if(m.status!=='active') return;
+  // 3) 활성 만남 → 전용 리스너로 구동
+  if(myMeetingId!==id){
+    myMeetingId = id;
+    if(incomingId===id){ $('incoming').style.display='none'; incomingId=null; }
+  }
+  runMeeting(id, m, role, opp);
+}
+window.answerRequest = async function(ok){
+  $('incoming').style.display='none';
+  const id = incomingId; incomingId=null;
+  if(!id) return;
+  if(!ok){ await updateDoc(doc(db,'meetings',id), {status:'declined'}); return; }
+  if(me.status!=='idle'){ toast('이미 만남이 진행 중이에요'); return; }
+  await updateDoc(doc(db,'meetings',id), { status:'active', startedAt: serverTimestamp() });
+};
+
+/* ══════════ 만남 상태머신 ══════════ */
+let betSel = { stmtId:null, key:null };
+let unlockTm = null;
+
+async function runMeeting(id, m, role, opp){
+  $('meeting').classList.add('open');
+  // 내 상태 busy 전환 (1회)
+  if(me.status!=='busy') updateDoc(doc(db,'participants',uid), {status:'busy'});
+  // draw: 내 조합(진실2+거짓1)을 아직 안 냈다면 제출
+  if(!m[role+'Stmts']){
+    const ans = await getDoc(doc(db,'answers',uid));
+    const lies = new Set(ans.data().lies);
+    const stDoc = await getDoc(doc(db,'statements',uid));
+    const items = stDoc.data().items;
+    const combo = shuffle([ ...pick(items.filter(x=>!lies.has(x.id)),2),
+                            ...pick(items.filter(x=> lies.has(x.id)),1) ])
+                  .map(x=>({id:x.id, text:x.text}));
+    await updateDoc(doc(db,'meetings',id), { [role+'Stmts']: combo });
+    return; // 스냅샷 재수신 후 계속
+  }
+  if(m.phase==='draw'){
+    if(m.aStmts && m.bStmts){
+      if(role==='b') await updateDoc(doc(db,'meetings',id), {phase:'first', phaseAt: Date.now()});
+      else renderWait('상대와 연결하는 중…');
+    } else renderWait('상대와 연결하는 중…');
+    return;
+  }
+  const oppName = role==='a' ? m.bName : m.aName;
+  const iMoveFirst = m.firstMover===role;
+  const myTurn = (m.phase==='first' && iMoveFirst) || (m.phase==='second' && !iMoveFirst);
+
+  if(m.phase==='first' || m.phase==='second'){
+    setPills(m.phase==='first'?1:2);
+    const phaseKey = m.phase + (myTurn?'-atk':'-def');
+    if(lastRenderedPhase===phaseKey+id) return;  // 중복 렌더 방지
+    lastRenderedPhase = phaseKey+id;
+    if(myTurn) renderInterrogate(id, m, role, opp, oppName);
+    else renderDefend(m, role, oppName);
+    return;
+  }
+  if(m.phase==='reveal'){
+    setPills(3);
+    await handleReveal(id, m, role, opp, oppName);
+  }
+}
+function setPills(n){ ['pp1','pp2','pp3'].forEach((x,i)=>$(x).classList.toggle('on', i===n-1)); }
+function renderWait(msg){
+  $('meet-body').innerHTML = `<div class="waiting"><div class="spinner"></div>${msg}</div>`;
+}
+function renderInterrogate(id, m, role, opp, oppName){
+  vib(40);
+  betSel = { stmtId:null, key:null };
+  const stmts = m[opp+'Stmts'];
+  const unlockSec = setts().betUnlockSec;
+  $('meet-body').innerHTML = `
+    <div class="meet-head">
+      <div class="role">🔍 심문 시간 — ${esc(oppName)}님의 진술</div>
+      <div class="hint">세 문장 중 거짓은 하나. 디테일을 파고드세요.</div>
+    </div>
+    <div class="papers">${stmts.map((s,i)=>`
+      <div class="paper selectable" id="bp${i}" data-sid="${s.id}" onclick="pickBet(${i},'${s.id}')">
+        <div class="no">STATEMENT ${'①②③'[i]}</div><div class="stmt">${esc(s.text)}</div></div>`).join('')}
+    </div>
+    <div id="betzone" style="display:none">
+      <div class="confbtns">
+        ${Object.entries(BET).map(([k,b])=>`
+          <button class="confbtn" id="cb-${k}" onclick="pickConf('${k}')">${b.label}<small>${b.amt}코인</small></button>`).join('')}
+      </div>
+      <div style="height:14px"></div>
+      <button class="btn" id="btn-lock" disabled onclick="lockBet('${id}','${role}')">배팅 확정</button>
+    </div>
+    <p class="sub" style="text-align:center" id="unlock-msg">충분히 대화하세요 — <span id="cnt">${unlockSec}</span>초 후 배팅이 열립니다</p>`;
+  let c = unlockSec;
+  clearInterval(unlockTm);
+  unlockTm = setInterval(()=>{
+    c--; const el=$('cnt');
+    if(!el){ clearInterval(unlockTm); return; }
+    if(c<=0){ clearInterval(unlockTm);
+      $('betzone').style.display='block';
+      $('unlock-msg').style.display='none'; vib(30);
+      refreshConfButtons();
+    } else el.textContent=c;
+  },1000);
+}
+window.pickBet = function(i, sid){
+  betSel.stmtId = sid;
+  [0,1,2].forEach(x=>{ const el=$('bp'+x); if(el) el.classList.toggle('selected', x===i); });
+  checkLock();
+};
+window.pickConf = function(k){
+  if(BET[k].amt > me.coin) { toast('잔고가 부족한 배팅이에요'); return; }
+  betSel.key = k;
+  Object.keys(BET).forEach(x=>$('cb-'+x)?.classList.toggle('selected', x===k));
+  checkLock();
+};
+function refreshConfButtons(){
+  Object.entries(BET).forEach(([k,b])=>{ const el=$('cb-'+k); if(el) el.disabled = b.amt > me.coin; });
+}
+function checkLock(){
+  const b=$('btn-lock'); if(b) b.disabled = !(betSel.stmtId && betSel.key);
+}
+window.lockBet = async function(id, role){
+  const amt = BET[betSel.key].amt;
+  vib(40);
+  const next = {}; next[role+'Bet'] = { stmtId: betSel.stmtId, amt };
+  // 현재 phase 확인 후 전환
+  const snap = await getDoc(doc(db,'meetings',id));
+  const m = snap.data();
+  next.phase = m.phase==='first' ? 'second' : 'reveal';
+  await updateDoc(doc(db,'meetings',id), next);
+  lastRenderedPhase='';
+};
+function renderDefend(m, role, oppName){
+  vib(40);
+  const stmts = m[role+'Stmts'];
+  $('meet-body').innerHTML = `
+    <div class="meet-head">
+      <div class="role">🎭 방어 시간 — 당신의 진술이 심문받는 중</div>
+      <div class="hint">모든 질문에 답하세요. 거짓도, 진실처럼.</div>
+    </div>
+    <div class="papers">${stmts.map((s,i)=>`
+      <div class="paper"><div class="no">MY STATEMENT ${'①②③'[i]}</div><div class="stmt">${esc(s.text)}</div></div>`).join('')}
+    </div>
+    <div class="waiting"><div class="spinner"></div>${esc(oppName)}님이 심문 중…</div>`;
+}
+
+/* ── 공개 & 정산 ──
+   각자 "자기 문장의 주인"으로서 상대 배팅을 채점해 기록하고,
+   양쪽 채점이 모이면 각자 자기 지갑을 정산한다. */
+async function handleReveal(id, m, role, opp, oppName){
+  const oppBetOnMe = m[opp+'Bet'];   // 상대가 내 문장에 건 배팅 → 내가 채점
+  const myGradeField = opp+'BetResult';
+  if(oppBetOnMe && !m[myGradeField]){
+    const ans = await getDoc(doc(db,'answers',uid));
+    const lies = new Set(ans.data().lies);
+    const wasLie = lies.has(oppBetOnMe.stmtId);
+    const myStmts = m[role+'Stmts'];
+    const myLieId = myStmts.find(s=>lies.has(s.id)).id;
+    const target = myStmts.find(s=>s.id===oppBetOnMe.stmtId);
+    await updateDoc(doc(db,'meetings',id), {
+      [myGradeField]: { correct: wasLie, amt: oppBetOnMe.amt },
+      [role+'LieId']: myLieId,
+    });
+    // 통계 & 진실상 로그
+    updateDoc(doc(db,'answers',uid), {
+      ['stats.'+myLieId+'.tried']: increment(1),
+      ...(wasLie ? {['stats.'+myLieId+'.caught']: increment(1)} : {}),
+    });
+    addDoc(collection(db,'betlog'), {
+      targetUid: uid, targetName: me.name, stmtId: oppBetOnMe.stmtId,
+      text: target ? target.text : '', wasLie, amt: oppBetOnMe.amt, ts: serverTimestamp(),
+    });
+    return; // 스냅샷 재수신 대기
+  }
+  // 양쪽 채점 + 양쪽 정답 공개가 모두 준비되어야 정산·표시
+  if(!(m.aBetResult && m.bBetResult && m.aLieId && m.bLieId)){
+    renderWait('결과를 여는 중…'); return;
+  }
+  if(!settledLocal[id]){
+    settledLocal[id] = true; save('settled', settledLocal);
+    const atk = m[role+'BetResult'];        // 내 추리의 결과
+    const def = m[opp+'BetResult'];         // 상대 추리의 결과 (내 방어)
+    const s = setts();
+    let delta = (atk.correct ? atk.amt : -atk.amt) + (def.correct ? -def.amt : def.amt);
+    const upd = {
+      coin: increment(delta),
+      metWith: arrayUnion(m[opp]),
+      status: 'idle',
+      ...(atk.correct ? {recW:increment(1), earnD:increment(atk.amt)} : {recL:increment(1)}),
+      ...(def.correct ? {} : {recD:increment(1), earnA:increment(def.amt)}),
+    };
+    await updateDoc(doc(db,'participants',uid), upd);
+    // 재기 지원금: 잔고가 바닥이면 최소 배팅 가능선까지만
+    const after = (me.coin||0) + delta;
+    if(after < s.refillFloor){
+      await updateDoc(doc(db,'participants',uid), { coin: increment(s.refillFloor - after) });
+    }
+    renderRevealUI(m, role, opp, oppName, delta, after < s.refillFloor ? s.refillFloor : null);
+    if(role==='a') updateDoc(doc(db,'meetings',id), {status:'done'});
+  }
+}
+function renderRevealUI(m, role, opp, oppName, delta, refilledTo){
+  vib([60,80,60]);
+  const atk = m[role+'BetResult'], def = m[opp+'BetResult'];
+  const oppStmts = m[opp+'Stmts'], oppLieId = m[opp+'LieId'];
+  const lines = [
+    settleRow('나의 추리', atk.correct?'✅ 거짓을 간파했습니다':'❌ 진실에 속았습니다',
+      (atk.correct?'+':'-')+atk.amt, atk.correct),
+    settleRow('상대의 추리', def.correct?'내 거짓말이 간파당했습니다':'내 연기가 통했습니다 🎭',
+      (def.correct?'-':'+')+def.amt, !def.correct),
+  ].join('');
+  $('meet-body').innerHTML = `
+    <div class="meet-head" style="text-align:center"><div class="role">📜 판결의 순간</div></div>
+    <div class="papers">
+      ${oppStmts.map((s,i)=>`
+        <div class="paper">
+          <div class="no">${esc(oppName)} · STATEMENT ${'①②③'[i]}</div>
+          <div class="stmt">${esc(s.text)}</div>
+          <div class="stamp ${s.id===oppLieId?'lie':'truth'}" style="animation-delay:${.3+i*.4}s">${s.id===oppLieId?'거짓':'진실'}</div>
+        </div>`).join('')}
+    </div>
+    <div id="settles" style="opacity:0;transition:opacity .5s">
+      ${lines}
+      <div class="bigcoin">이번 만남 <b>${delta>=0?'+':''}${delta}</b> 코인</div>
+      ${refilledTo!==null?`<p class="sub" style="text-align:center;color:var(--gold)">💸 재기 지원금 — 잔고 ${refilledTo}코인으로 충전</p>`:''}
+      <div style="height:14px"></div>
+      <button class="btn blue" onclick="finishMeeting()">홈으로</button>
+    </div>`;
+  setTimeout(()=>{ const s=$('settles'); if(s) s.style.opacity=1; }, 1600);
+}
+function settleRow(who, desc, amt, plus){
+  return `<div class="settle"><div><b>${who}</b><br><span style="font-size:12.5px;color:var(--mut)">${desc}</span></div><div class="amt ${plus?'plus':'minus'}">${amt}</div></div>`;
+}
+window.finishMeeting = function(){ closeMeetingUI(); };
+window.cancelMeeting = async function(){
+  if(myMeetingId){
+    try{ await updateDoc(doc(db,'meetings',myMeetingId), {status:'cancelled'}); }catch(e){}
+  }
+  await updateDoc(doc(db,'participants',uid), {status:'idle'});
+  closeMeetingUI();
+};
+function closeMeetingUI(){
+  clearInterval(unlockTm);
+  $('meeting').classList.remove('open');
+  myMeetingId = null; lastRenderedPhase='';
+  renderPeople();
+}
+
+/* ══════════ 랭킹 ══════════ */
+let rankMode='d';
+window.showRank = function(mo){
+  rankMode=mo;
+  $('rt-d').classList.toggle('on',mo==='d'); $('rt-a').classList.toggle('on',mo==='a');
+  $('rank-desc').textContent = mo==='d' ? '추리 성공으로 딴 코인의 누적 총액'
+    : '내 거짓말이 방어에 성공해 가져온 코인의 누적 총액';
+  renderRank();
+};
+function renderRank(){
+  const rows = peopleCache.filter(p=>p.ready)
+    .map(p=>({nm:p.name+(p.uid===uid?' (나)':''), val: rankMode==='d'?(p.earnD||0):(p.earnA||0), me:p.uid===uid}))
+    .sort((a,b)=>b.val-a.val).slice(0,30);
+  $('rank-list').innerHTML = rows.map((r,i)=>`
+    <div class="rank-row ${r.me?'me':''}">
+      <div class="pos">${i+1}</div><div class="nm">${esc(r.nm)}</div><div class="val">🪙 ${r.val}</div>
+    </div>`).join('');
+}
+
+/* ══════════ 내 문장 ══════════ */
+async function renderMy(){
+  let stats = {};
+  try{ const a = await getDoc(doc(db,'answers',uid)); if(a.exists()) stats = a.data().stats||{}; }catch(e){}
+  $('my-list').innerHTML = localSlots.map((s,i)=>{
+    const st = stats[s.id]||{tried:0,caught:0};
+    const danger = st.tried>0 && st.caught/st.tried>=.6;
+    return `
+    <div class="mystmt" ${s.isLie?`onclick="editLie(${i})" style="cursor:pointer"`:''}>
+      <div class="top">
+        <span class="badge ${s.isLie?'l':'t'}">${s.isLie?'거짓':'진실'}</span>
+        ${s.edited?'<span class="badge edited">✍️ 수정됨</span>':''}
+        ${s.isLie?'<span style="margin-left:auto;font-size:11.5px;color:var(--mut)">탭해서 수정</span>':''}
+      </div>
+      <div class="body">${esc(s.text)}</div>
+      ${s.isLie && st.tried>0 ? `<div class="stat ${danger?'danger':''}">심문 ${st.tried}회 중 ${st.caught}회 간파${danger?' — 은퇴를 고려해보세요':''}</div>` : ''}
+    </div>`; }).join('');
+}
+window.editLie = function(i){
+  if(myMeetingId){ toast('만남 중에는 수정할 수 없어요'); return; }
+  openSheet(i);
+};
+
+/* ══════════ 결과 모드 ══════════ */
+function renderResult(){
+  if(!me) return;
+  $('result-grid').innerHTML = [
+    ['🪙 '+me.coin, '최종 코인'], [ (me.recW||0)+'승 '+(me.recL||0)+'패', '추리 전적'],
+    ['🕵️ '+(me.earnD||0), '명탐정 획득액'], ['🎭 '+(me.earnA||0), '명배우 획득액'],
+  ].map(([v,k])=>`<div class="result-card"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  const top = mo => peopleCache.filter(p=>p.ready)
+    .map(p=>({nm:p.name+(p.uid===uid?' (나)':''), val: mo==='d'?(p.earnD||0):(p.earnA||0), me:p.uid===uid}))
+    .sort((a,b)=>b.val-a.val).slice(0,5)
+    .map((r,i)=>`<div class="rank-row ${r.me?'me':''}"><div class="pos">${i+1}</div><div class="nm">${esc(r.nm)}</div><div class="val">🪙 ${r.val}</div></div>`).join('');
+  $('final-rank-d').innerHTML = top('d');
+  $('final-rank-a').innerHTML = top('a');
+}
+</script>
+</body>
+</html>
