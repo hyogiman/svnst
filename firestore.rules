@@ -28,16 +28,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 진술 문장 (텍스트만, 셔플 저장) — 전원 읽기, 본인만 쓰기
+    // 진술 문장 (텍스트만, 셔플 저장) — 전원 읽기, 본인만 쓰기, 관리자 삭제 가능
     match /statements/{uid} {
       allow read: if authed();
       allow write: if authed() && request.auth.uid == uid;
+      allow delete: if (authed() && request.auth.uid == uid) || isAdmin();
     }
 
     // ★ 정답 (거짓 문장 id) — 오직 본인만 읽기/쓰기
     //   개발자 도구로 남의 정답을 볼 수 없게 하는 핵심 규칙
+    //   (관리자는 내용을 읽을 수 없지만, 리셋/통계초기화를 위한 쓰기·삭제만 허용)
     match /answers/{uid} {
-      allow read, write: if authed() && request.auth.uid == uid;
+      allow read: if authed() && request.auth.uid == uid;
+      allow write: if (authed() && request.auth.uid == uid) || isAdmin();
     }
 
     // 만남 — 당사자 두 명만 수정 가능
@@ -48,11 +51,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 배팅 로그 ('믿기 힘든 진실상' 집계용) — 쓰기는 전원, 읽기는 관리자만
+    // 배팅 로그 ('믿기 힘든 진실상' 집계용) — 쓰기는 전원, 읽기·삭제는 관리자만
     match /betlog/{logId} {
       allow create: if authed();
       allow read: if isAdmin();
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
   }
 }

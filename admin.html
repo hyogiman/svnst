@@ -126,6 +126,22 @@
       <div style="flex:1;min-width:240px"><b style="font-size:13px">🎭 명배우 TOP 5</b><div id="r-a"></div></div>
     </div>
   </div>
+
+  <h2 style="color:#E0796C">⚠️ 위험 구역</h2>
+  <div class="card" style="border-color:rgba(199,62,46,.5)">
+    <b style="font-size:14px">게임 전체 리셋</b>
+    <p class="sub" style="margin:6px 0 4px">
+      모든 참가자·진술·정답·만남·배팅 기록을 <b>영구 삭제</b>합니다.
+      대상자가 바뀌거나 새 행사를 시작할 때 사용하세요.
+      (게임 설정값과 관리자 등록은 유지됩니다)
+    </p>
+    <p class="sub" style="color:#E0796C;margin-bottom:12px">되돌릴 수 없습니다. 게임 진행 중에는 절대 누르지 마세요.</p>
+    <div class="flexrow">
+      <button class="btn" id="btn-reset" onclick="resetGame()">전체 리셋</button>
+      <button class="btn ghost sm" onclick="resetCoinsOnly()">코인·전적만 초기화 (문장 유지)</button>
+    </div>
+    <p class="sub" style="margin-top:8px" id="reset-status"></p>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -134,12 +150,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot, getDocs, query, where }
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, onSnapshot, getDocs, query, where, writeBatch }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 // ⚠️ 운영 전 반드시 변경하세요. (화면 잠금용 — 실제 권한은 admins 컬렉션 + 보안 규칙이 담당)
-const ADMIN_PW = "hyogiman-2026";
+const ADMIN_PW = "seven-admin-2026";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -265,6 +281,95 @@ window.computeAwards = async function(){
       <div class="meta">${esc(a.name)} · ${a.n}명이 거짓이라 확신했지만, 진실이었습니다</div>
     </div>`).join('')
   : '<p class="sub" style="margin-top:10px">아직 집계할 데이터가 없습니다</p>';
+};
+
+/* ══════════ 위험 구역: 리셋 ══════════ */
+// 컬렉션 전체를 배치로 삭제 (배치당 최대 500건 제한 고려)
+async function wipeCollection(name, onProgress){
+  let total = 0;
+  while(true){
+    const snap = await getDocs(collection(db, name));
+    if(snap.empty) break;
+    const docs = snap.docs;
+    for(let i=0; i<docs.length; i+=450){
+      const batch = writeBatch(db);
+      docs.slice(i, i+450).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      total += Math.min(450, docs.length - i);
+      if(onProgress) onProgress(name, total);
+    }
+    // 이번에 가져온 문서를 모두 지웠으니, 다음 getDocs가 비어 있으면 종료됨
+  }
+  return total;
+}
+
+window.resetGame = async function(){
+  if(cfg && cfg.phase==='playing'){
+    if(!confirm('⚠️ 지금 게임이 진행 중입니다. 정말 전체 리셋할까요?')) return;
+  }
+  if(!confirm('모든 참가자·진술·정답·만남·배팅 기록을 영구 삭제합니다. 계속할까요?')) return;
+  const typed = prompt('되돌릴 수 없습니다. 확인을 위해 아래에 그대로 입력하세요:\n\nRESET');
+  if(typed !== 'RESET'){ toast('입력이 일치하지 않아 취소했습니다'); return; }
+
+  $('btn-reset').disabled = true;
+  const st = $('reset-status');
+  const cols = ['betlog','meetings','answers','statements','participants'];
+  try{
+    let done = 0;
+    for(const c of cols){
+      st.textContent = `삭제 중… (${c})`;
+      const n = await wipeCollection(c, (name,cnt)=>{ st.textContent = `삭제 중… ${name}: ${cnt}건`; });
+      done += n;
+    }
+    // 단계를 '작가의 방'으로 되돌림 (설정·공지는 유지, 공지는 비움)
+    await setDoc(doc(db,'config','game'),
+      { phase:'writing', notice:'' , settings:(cfg&&cfg.settings)||DEFAULTS }, {merge:true});
+    st.textContent = `✅ 리셋 완료 — 총 ${done}건 삭제. 새 행사를 시작할 수 있습니다.`;
+    toast('전체 리셋 완료');
+  }catch(e){
+    st.textContent = '❌ 오류: ' + e.message;
+    toast('리셋 중 오류가 발생했습니다');
+  }finally{
+    $('btn-reset').disabled = false;
+  }
+};
+
+// 문장은 그대로 두고 지갑·전적·만남 기록만 초기화 (같은 인원으로 다시 플레이)
+window.resetCoinsOnly = async function(){
+  if(!confirm('참가자의 코인·전적·만남 기록을 초기화합니다.\n(작성한 일곱 문장은 그대로 유지됩니다) 계속할까요?')) return;
+  const st = $('reset-status');
+  const s = (cfg&&cfg.settings)||DEFAULTS;
+  try{
+    // 만남·배팅 기록 삭제
+    st.textContent = '만남·배팅 기록 삭제 중…';
+    await wipeCollection('meetings');
+    await wipeCollection('betlog');
+    // 참가자 지갑/전적 초기화
+    const snap = await getDocs(collection(db,'participants'));
+    const docs = snap.docs;
+    for(let i=0;i<docs.length;i+=450){
+      const batch = writeBatch(db);
+      docs.slice(i,i+450).forEach(d=> batch.update(d.ref, {
+        coin:s.initialCoin, tickets:s.ticketCount,
+        recW:0, recL:0, recD:0, earnD:0, earnA:0,
+        metWith:[], status:'idle', alive:true,
+      }));
+      await batch.commit();
+      st.textContent = `참가자 초기화 중… ${Math.min(i+450,docs.length)}/${docs.length}`;
+    }
+    // 거짓 문장 간파 통계도 초기화
+    const ans = await getDocs(collection(db,'answers'));
+    for(const a of ans.docs){
+      const data = a.data(); const stats = {};
+      (data.lies||[]).forEach(id=> stats[id]={tried:0,caught:0});
+      await updateDoc(a.ref, { stats });
+    }
+    st.textContent = `✅ 코인·전적 초기화 완료 (${docs.length}명). 문장은 유지됩니다.`;
+    toast('코인·전적 초기화 완료');
+  }catch(e){
+    st.textContent = '❌ 오류: ' + e.message;
+    toast('초기화 중 오류가 발생했습니다');
+  }
 };
 </script>
 </body>
