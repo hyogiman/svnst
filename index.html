@@ -73,16 +73,21 @@
   .dot.filled-t{background:var(--verdict);border-color:var(--verdict)}
   .dot.filled-l{background:var(--seal);border-color:var(--seal)}
   .slot{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;background:var(--ink2);
-    border:1.5px solid var(--line);margin-bottom:9px;cursor:pointer}
+    border:1.5px solid var(--line);margin-bottom:9px;cursor:pointer;transition:background .15s}
   .slot:active{background:var(--ink3)}
   .slot .tag{flex-shrink:0;font-family:var(--disp);font-size:12px;font-weight:700;width:44px;height:44px;
     border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px double var(--verdict);
-    color:var(--verdict);transform:rotate(-8deg);text-align:center;line-height:1.2}
-  .slot.lie .tag{border-color:var(--seal);color:var(--seal)}
+    color:var(--verdict);transform:rotate(-8deg);text-align:center;line-height:1.2;background:rgba(53,99,173,.12)}
+  .slot.lie .tag{border-color:var(--seal);color:var(--seal);background:rgba(199,62,46,.1)}
   .slot .txt{flex:1;min-width:0}
   .slot .txt .st{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .slot .txt .st.empty{color:var(--mut);font-style:italic}
   .slot .chk{color:var(--ok);font-size:18px;flex-shrink:0}
+  /* 작성 완료된 슬롯 — 옅은 노란 종이 배경 + 검은 글씨 (진실/거짓 태그가 잘 보이도록) */
+  .slot.filled{background:var(--paper);border-color:var(--paper-shade)}
+  .slot.filled .txt .st{color:var(--paper-ink);font-weight:600}
+  .slot.filled .tag{background:#fff}
+  .slot.filled:active{background:var(--paper-shade)}
   /* 바텀시트 */
   #sheet-bg{display:none;position:fixed;inset:0;background:rgba(5,8,18,.72);z-index:70;justify-content:center;align-items:flex-end}
   #sheet-bg.open{display:flex}
@@ -180,15 +185,16 @@
   .rank-row .nm{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rank-row .val{color:var(--gold);font-weight:800}
   /* 내 문장 */
-  .mystmt{background:var(--ink2);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:9px}
+  .mystmt{background:var(--paper);border:1.5px solid var(--paper-shade);border-radius:12px;padding:13px 14px;margin-bottom:9px}
   .badge{font-size:10.5px;padding:2.5px 8px;border-radius:99px;font-weight:700}
-  .badge.t{background:rgba(53,99,173,.2);color:#7FA5DE}
-  .badge.l{background:rgba(199,62,46,.2);color:#E0796C}
-  .badge.edited{background:rgba(217,164,65,.18);color:var(--gold)}
+  .badge.t{background:rgba(53,99,173,.16);color:var(--verdict)}
+  .badge.l{background:rgba(199,62,46,.16);color:var(--seal)}
+  .badge.edited{background:rgba(217,164,65,.22);color:#9A7420}
   .mystmt .top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-  .mystmt .body{font-size:14px}
-  .mystmt .stat{font-size:12px;color:var(--mut);margin-top:6px}
-  .mystmt .stat.danger{color:#E0796C}
+  .mystmt .top span[style*="margin-left"]{color:#8A8266 !important}
+  .mystmt .body{font-size:14px;color:var(--paper-ink);font-weight:600}
+  .mystmt .stat{font-size:12px;color:#8A8266;margin-top:6px}
+  .mystmt .stat.danger{color:var(--seal)}
   .ticket-bar{display:flex;align-items:center;justify-content:space-between;background:var(--ink2);
     border:1.5px dashed var(--gold);border-radius:12px;padding:12px 15px;margin-bottom:14px;font-size:13.5px}
   /* 결과 모드 */
@@ -227,7 +233,7 @@
   <section class="screen" id="writer">
     <div class="eyebrow">작가의 방</div>
     <h1 class="title">나의 일곱 문장</h1>
-    <p class="sub">진실 네개, 거짓 세개를 써 주세요. 게임 중엔 수정이 어렵습니다.</p>
+    <p class="sub">진실 네 개, 거짓 세 개. 심문을 버틸 수 있게 쓰세요.</p>
     <button class="btn ghost sm" style="margin-top:12px;align-self:flex-start" onclick="openGuide()">💡 작성 가이드 보기</button>
     <div class="progress-wrap">
       <div class="dots" id="dots"></div>
@@ -328,7 +334,6 @@
     </div>
   </div>
 
-  
   <!-- 작성 가이드 모달 (버튼으로만 열림) -->
   <div id="guide-bg" onclick="if(event.target===this)closeGuide()">
     <div id="guide-sheet">
@@ -498,7 +503,7 @@ function renderWriter(){
   $('dots').innerHTML = localSlots.map(s=>
     `<div class="dot ${s.text ? (s.isLie?'filled-l':'filled-t') : ''}"></div>`).join('');
   $('slots').innerHTML = localSlots.map((s,i)=>`
-    <div class="slot ${s.isLie?'lie':''}" onclick="openSheet(${i})">
+    <div class="slot ${s.isLie?'lie':''} ${s.text?'filled':''}" onclick="openSheet(${i})">
       <div class="tag">${s.isLie?'거짓':'진실'}<br>${s.isLie?i-3:i+1}</div>
       <div class="txt"><div class="st ${s.text?'':'empty'}">${esc(s.text)||'탭해서 작성하기'}</div></div>
       ${s.text?'<div class="chk">✓</div>':''}
@@ -565,7 +570,10 @@ window.saveStatement = async function(){
     updateDoc(doc(db,'participants',uid), { done });   // 관리자 모니터링용
   }
   closeSheet();
-  if(me && me.ready) renderMy(); else renderWriter();
+  // 현재 보이는 화면 기준으로 갱신 (준비완료 후에도 작가의 방에 있을 수 있음)
+  if(document.getElementById('writer').classList.contains('active')) renderWriter();
+  else renderMy();
+  toast('저장되었어요');
 };
 window.setReady = async function(){
   if(localSlots.some(s=>!s.text)) return;
