@@ -360,7 +360,7 @@
           <li><b>능력형</b> — "나는 ___를 할 줄 안다" (시연 요구를 어떻게 피할지 준비)</li>
           <li><b>관계·이력형</b> — "나는 ___였다 / ___가 있다"</li>
         </ul>
-        <p class="guide-tip">💡 심문받으면 즉석에서 디테일을 지어내야 해요. 버틸 수 있는 거짓을 고르세요.</p>
+        <p class="guide-tip">💡 질문받으면 즉석에서 디테일을 지어내야 해요. 버틸 수 있는 거짓을 고르세요.</p>
       </div>
 
       <div class="guide-block" style="border:none;background:rgba(217,164,65,.08)">
@@ -751,7 +751,7 @@ function renderInterrogate(id, m, role, opp, oppName){
   const unlockSec = setts().betUnlockSec;
   $('meet-body').innerHTML = `
     <div class="meet-head">
-      <div class="role">🔍 심문 시간 — ${esc(oppName)}님의 진술</div>
+      <div class="role">🔍 질문 시간 — ${esc(oppName)}님의 진술</div>
       <div class="hint">세 문장 중 거짓은 하나. 디테일을 파고드세요.</div>
     </div>
     <div class="papers">${stmts.map((s,i)=>`
@@ -812,13 +812,13 @@ function renderDefend(m, role, oppName){
   const stmts = m[role+'Stmts'];
   $('meet-body').innerHTML = `
     <div class="meet-head">
-      <div class="role">🎭 방어 시간 — 당신의 진술이 심문받는 중</div>
+      <div class="role">🎭 방어 시간 — 당신의 진술이 질문받는 중</div>
       <div class="hint">모든 질문에 답하세요. 거짓도, 진실처럼.</div>
     </div>
     <div class="papers">${stmts.map((s,i)=>`
       <div class="paper"><div class="no">MY STATEMENT ${'①②③'[i]}</div><div class="stmt">${esc(s.text)}</div></div>`).join('')}
     </div>
-    <div class="waiting"><div class="spinner"></div>${esc(oppName)}님이 심문 중…</div>`;
+    <div class="waiting"><div class="spinner"></div>${esc(oppName)}님이 질문 중…</div>`;
 }
 
 /* ── 공개 & 정산 ──
@@ -957,7 +957,7 @@ async function renderMy(){
         ${s.isLie?'<span style="margin-left:auto;font-size:11.5px;color:var(--mut)">탭해서 수정</span>':''}
       </div>
       <div class="body">${esc(s.text)}</div>
-      ${s.isLie && st.tried>0 ? `<div class="stat ${danger?'danger':''}">심문 ${st.tried}회 중 ${st.caught}회 간파${danger?' — 은퇴를 고려해보세요':''}</div>` : ''}
+      ${s.isLie && st.tried>0 ? `<div class="stat ${danger?'danger':''}">질문 ${st.tried}회 중 ${st.caught}회 간파${danger?' — 은퇴를 고려해보세요':''}</div>` : ''}
     </div>`; }).join('');
 }
 window.editLie = function(i){
