@@ -103,13 +103,27 @@
     <label class="set">배팅 대기(초)<input id="s-unlock" type="number"></label>
     <button class="btn sm" onclick="saveSettings()">설정 저장</button>
   </div>
-  <p class="sub" style="margin-top:6px">초기 코인·티켓 수는 이후 입장하는 참가자부터 적용됩니다.</p>
+  <div class="card" style="margin-top:10px">
+    <b style="font-size:13px">참가자 입력 정보</b>
+    <div class="flexrow" style="margin-top:10px;gap:20px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">
+        <input type="checkbox" id="s-useteam" style="width:auto"> 소속 입력받기
+        <span class="sub" style="margin:0">(끄면 이름·직위만)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">
+        <input type="checkbox" id="s-showpos" style="width:auto"> 매칭 목록에 직위 표시
+        <span class="sub" style="margin:0">(끄면 이름만 노출 — 수평적 교류 유도)</span>
+      </label>
+      <button class="btn sm" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:6px">참가자 입력 정보는 <b>게임 시작 전</b>에 정하세요. 이후 입장하는 참가자부터 적용됩니다.</p>
 
   <h2>👥 참가자 현황 <span class="sub" id="p-count"></span></h2>
   <div class="card" style="overflow-x:auto">
     <table>
       <thead><tr>
-        <th>이름</th><th>소속</th><th>작성</th><th>상태</th><th>코인</th>
+        <th>이름</th><th>소속</th><th>직위</th><th>작성</th><th>상태</th><th>코인</th>
         <th>추리</th><th>방어</th><th>🕵️</th><th>🎭</th><th>관리</th>
       </tr></thead>
       <tbody id="p-table"></tbody>
@@ -155,7 +169,7 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, on
 import { firebaseConfig } from "./firebase-config.js";
 
 // ⚠️ 운영 전 반드시 변경하세요. (화면 잠금용 — 실제 권한은 admins 컬렉션 + 보안 규칙이 담당)
-const ADMIN_PW = "hyogi1";
+const ADMIN_PW = "hyeok";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -165,7 +179,7 @@ function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2400); }
 
 let uid=null, cfg=null, people=[];
-const DEFAULTS = { eventCode:'LGCHEM', initialCoin:100, ticketCount:2, ticketCost:20, refillFloor:10, betUnlockSec:60 };
+const DEFAULTS = { eventCode:'LGCHEM', initialCoin:100, ticketCount:2, ticketCost:20, refillFloor:10, betUnlockSec:60, useTeam:true, showPosition:true };
 const PHASE_KO = { writing:'✍️ 작가의 방', playing:'🎬 게임 진행 중', ended:'🏁 종료·결과 공개' };
 
 onAuthStateChanged(auth, user=>{
@@ -186,6 +200,8 @@ function boot(){
     $('s-code').value=s.eventCode??''; $('s-coin').value=s.initialCoin;
     $('s-tickets').value=s.ticketCount; $('s-tcost').value=s.ticketCost;
     $('s-floor').value=s.refillFloor; $('s-unlock').value=s.betUnlockSec;
+    $('s-useteam').checked = s.useTeam!==false;      // 기본값 true
+    $('s-showpos').checked = s.showPosition!==false; // 기본값 true
     $('notice-in').value = (cfg&&cfg.notice)||'';
   });
   onSnapshot(collection(db,'participants'), qs=>{
@@ -217,6 +233,8 @@ window.saveSettings = async function(){
     initialCoin:+$('s-coin').value||100, ticketCount:+$('s-tickets').value||2,
     ticketCost:+$('s-tcost').value||20, refillFloor:+$('s-floor').value||10,
     betUnlockSec:+$('s-unlock').value||60,
+    useTeam: $('s-useteam').checked,
+    showPosition: $('s-showpos').checked,
   };
   await setDoc(doc(db,'config','game'), { settings:s, phase:(cfg&&cfg.phase)||'writing' }, {merge:true});
   toast('설정을 저장했습니다');
@@ -235,7 +253,7 @@ function renderPeople(){
   const rows = [...people].sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   $('p-table').innerHTML = rows.map(p=>`
     <tr>
-      <td><b>${esc(p.name)}</b></td><td>${esc(p.team)}</td>
+      <td><b>${esc(p.name)}</b></td><td>${esc(p.team)}</td><td>${esc(p.position)}</td>
       <td>${p.ready?'<span class="pill g">7/7 ✓</span>':`<span class="pill y">${p.done||0}/7</span>`}</td>
       <td>${p.alive===false?'<span class="pill r">제외</span>'
           : p.status==='busy'?'<span class="pill b">대화 중</span>':'<span class="pill g">대기</span>'}</td>
