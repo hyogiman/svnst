@@ -155,7 +155,7 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, on
 import { firebaseConfig } from "./firebase-config.js";
 
 // ⚠️ 운영 전 반드시 변경하세요. (화면 잠금용 — 실제 권한은 admins 컬렉션 + 보안 규칙이 담당)
-const ADMIN_PW = "hyogi1";
+const ADMIN_PW = "seven-admin-2026";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -321,10 +321,11 @@ window.resetGame = async function(){
       const n = await wipeCollection(c, (name,cnt)=>{ st.textContent = `삭제 중… ${name}: ${cnt}건`; });
       done += n;
     }
-    // 단계를 '작가의 방'으로 되돌림 (설정·공지는 유지, 공지는 비움)
+    // 단계를 '작가의 방'으로 되돌리고, 세대 번호를 올려 참가자 로컬 데이터 초기화를 유도
+    const nextGen = ((cfg && cfg.generation) || 0) + 1;
     await setDoc(doc(db,'config','game'),
-      { phase:'writing', notice:'' , settings:(cfg&&cfg.settings)||DEFAULTS }, {merge:true});
-    st.textContent = `✅ 리셋 완료 — 총 ${done}건 삭제. 새 행사를 시작할 수 있습니다.`;
+      { phase:'writing', notice:'', generation: nextGen, settings:(cfg&&cfg.settings)||DEFAULTS }, {merge:true});
+    st.textContent = `✅ 리셋 완료 — 총 ${done}건 삭제 (새 세대 #${nextGen}). 참가자 기기의 저장 데이터도 재접속 시 자동 초기화됩니다.`;
     toast('전체 리셋 완료');
   }catch(e){
     st.textContent = '❌ 오류: ' + e.message;
