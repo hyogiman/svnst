@@ -53,9 +53,12 @@
     60%{transform:rotate(-14deg) scale(.92);opacity:.95}100%{transform:rotate(-14deg) scale(1);opacity:.92}}
   /* 로그인 */
   #login{justify-content:center;text-align:center;padding-bottom:40px}
-  .logo-seal{width:88px;height:88px;margin:0 auto 22px;border-radius:50%;border:3px double var(--seal);
-    color:var(--seal);display:flex;align-items:center;justify-content:center;font-family:var(--disp);
-    font-size:40px;font-weight:700;transform:rotate(-8deg)}
+  .logo-seal{width:88px;height:88px;margin:0 auto 22px;border-radius:50%;border:2.5px solid var(--seal);
+    color:var(--seal);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:var(--disp);transform:rotate(-6deg);position:relative;
+    box-shadow:inset 0 0 0 4px rgba(199,62,46,.18)}
+  .logo-seal .num{font-size:38px;font-weight:700;line-height:1}
+  .logo-seal .stars{font-size:9px;letter-spacing:2px;margin-top:2px;opacity:.75}
   .logo-title{font-family:var(--disp);font-size:30px;font-weight:700}
   .logo-sub{font-family:var(--disp);color:var(--mut);font-size:14px;margin:8px 0 34px}
   .field{margin-bottom:12px;text-align:left}
@@ -88,7 +91,7 @@
   @keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
   #sheet .guide{background:var(--ink);border-radius:10px;padding:12px 14px;margin:12px 0;
     font-size:13.5px;color:#C9CFE0;border-left:3px solid var(--gold)}
-  #sheet textarea{width:100%;height:86px;padding:12px;border-radius:10px;resize:none;
+  #sheet textarea{width:100%;height:86px;padding:12px;border-radius:10px;resize:none;margin-top:14px;
     border:1.5px solid var(--line);background:var(--ink);color:#fff;font-size:15px;font-family:var(--body)}
   #sheet textarea:focus{outline:none;border-color:var(--gold)}
   .sheet-actions{display:flex;gap:10px;margin-top:14px}
@@ -209,7 +212,7 @@
 
   <!-- ═══════ 로그인 ═══════ -->
   <section class="screen active" id="login">
-    <div class="logo-seal">柒</div>
+    <div class="logo-seal"><span class="num">7</span><span class="stars">✦ ✦ ✦</span></div>
     <div class="logo-title">The Seven Statements</div>
     <div class="logo-sub">일곱 개의 진술 — 당신의 일곱 문장이 당신을 말해줍니다</div>
     <div class="field"><label>행사 코드</label><input id="in-code" placeholder="진행자에게 안내받은 코드" autocomplete="off"></div>
@@ -272,7 +275,7 @@
   <!-- ═══════ 결과 모드 ═══════ -->
   <section class="screen" id="result">
     <div class="hero">
-      <div class="logo-seal" style="width:64px;height:64px;font-size:28px">柒</div>
+      <div class="logo-seal" style="width:64px;height:64px"><span class="num" style="font-size:28px">7</span><span class="stars" style="font-size:7px">✦ ✦ ✦</span></div>
       <div class="eyebrow" style="margin-top:14px">GAME OVER</div>
       <div class="big">오늘의 나의 기록</div>
     </div>
@@ -503,7 +506,7 @@ function renderWriter(){
     $('btn-ready').textContent = '✓ 준비 완료';
     $('btn-ready').disabled = true;
     $('ready-msg').textContent = cfg && cfg.phase==='playing'
-      ? '' : '진행자가 게임을 시작하면 화면이 자동 전환됩니다';
+      ? '' : '진행자가 게임을 시작하기 전까지는 문장을 자유롭게 수정할 수 있어요';
   } else {
     $('btn-ready').textContent = '준비 완료';
     $('btn-ready').disabled = done!==7;
@@ -529,9 +532,11 @@ window.saveStatement = async function(){
   if(!v){ toast('문장을 입력해주세요'); return; }
   if(v.length<5){ toast('조금만 더 구체적으로 써볼까요'); return; }
   const s = localSlots[editIdx];
-  const isGameEdit = me && me.ready;   // 준비완료 이후의 수정 = 리라이트 티켓
-  if(isGameEdit && s.text !== v){
-    if(!s.isLie){ toast('진실 문장은 수정할 수 없어요'); return; }
+  const gameStarted = cfg && cfg.phase==='playing';   // 관리자가 게임을 시작했는가
+
+  // ── 게임 시작 후의 수정 = 리라이트 티켓 (거짓만) ──
+  if(gameStarted && s.text !== v){
+    if(!s.isLie){ toast('게임이 시작되어 진실 문장은 수정할 수 없어요'); return; }
     if(myMeetingId){ toast('만남 중에는 수정할 수 없어요'); return; }
     const cost = setts().ticketCost;
     if((me.tickets||0)<=0){ toast('리라이트 티켓을 모두 사용했어요'); return; }
@@ -544,12 +549,22 @@ window.saveStatement = async function(){
     closeSheet(); renderMy();
     return;
   }
+
+  // ── 게임 시작 전 = 진실·거짓 모두 자유 수정 (티켓 무소모) ──
   s.text = v; save('slots', localSlots);
-  if(me && !me.ready){
+  if(me && me.ready){
+    // 이미 준비완료로 서버에 올라간 상태 → 문장/정답 데이터도 갱신
+    await pushStatements();
+    await setDoc(doc(db,'answers',uid), {
+      lies: localSlots.filter(x=>x.isLie).map(x=>x.id),
+      stats: Object.fromEntries(localSlots.filter(x=>x.isLie).map(x=>[x.id,{tried:0,caught:0}])),
+    });
+  } else if(me){
     const done = localSlots.filter(x=>x.text).length;
     updateDoc(doc(db,'participants',uid), { done });   // 관리자 모니터링용
   }
-  closeSheet(); renderWriter();
+  closeSheet();
+  if(me && me.ready) renderMy(); else renderWriter();
 };
 window.setReady = async function(){
   if(localSlots.some(s=>!s.text)) return;
