@@ -92,6 +92,19 @@
     border:1.5px solid var(--line);background:var(--ink);color:#fff;font-size:15px;font-family:var(--body)}
   #sheet textarea:focus{outline:none;border-color:var(--gold)}
   .sheet-actions{display:flex;gap:10px;margin-top:14px}
+  /* 작성 가이드 모달 */
+  #guide-bg{display:none;position:fixed;inset:0;background:rgba(5,8,18,.75);z-index:75;
+    justify-content:center;align-items:flex-end}
+  #guide-bg.open{display:flex}
+  #guide-sheet{width:100%;max-width:430px;max-height:88vh;overflow-y:auto;background:var(--ink2);
+    border-radius:20px 20px 0 0;padding:22px 20px 30px;border-top:1.5px solid var(--line);
+    animation:sheetUp .22s ease-out}
+  .guide-block{background:var(--ink);border-radius:12px;padding:14px 16px;margin-bottom:12px;
+    border:1px solid var(--line)}
+  .guide-h{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  #guide-sheet ul{margin:0 0 4px;padding-left:18px}
+  #guide-sheet li{font-size:13.5px;color:#C9CFE0;margin-bottom:5px;line-height:1.5}
+  .guide-tip{font-size:12.5px;color:var(--gold);margin-top:8px}
   /* 게임 */
   .statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;
     border-radius:12px;background:var(--ink2);border:1.5px solid var(--line);margin-bottom:16px}
@@ -212,6 +225,7 @@
     <div class="eyebrow">작가의 방</div>
     <h1 class="title">나의 일곱 문장</h1>
     <p class="sub">진실 네 개, 거짓 세 개. 심문을 버틸 수 있게 쓰세요.</p>
+    <button class="btn ghost sm" style="margin-top:12px;align-self:flex-start" onclick="openGuide()">💡 작성 가이드 보기</button>
     <div class="progress-wrap">
       <div class="dots" id="dots"></div>
       <div style="font-size:13px;color:var(--mut)"><b id="prog-n" style="color:#fff">0</b> / 7 완성</div>
@@ -303,12 +317,48 @@
     <div id="sheet">
       <div class="eyebrow" id="sheet-eyebrow"></div>
       <h1 class="title" style="font-size:19px" id="sheet-title"></h1>
-      <div class="guide" id="sheet-guide"></div>
-      <textarea id="sheet-input" placeholder="한 문장으로 적어주세요"></textarea>
+      <textarea id="sheet-input" placeholder="한 문장으로 자유롭게 적어주세요"></textarea>
       <div class="sheet-actions">
         <button class="btn ghost" style="flex:1" onclick="closeSheet()">닫기</button>
         <button class="btn" style="flex:2" onclick="saveStatement()">저장</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 작성 가이드 모달 (버튼으로만 열림) -->
+  <div id="guide-bg" onclick="if(event.target===this)closeGuide()">
+    <div id="guide-sheet">
+      <div class="eyebrow">작성 가이드</div>
+      <h1 class="title" style="font-size:19px;margin-bottom:4px">일곱 문장, 이렇게 써보세요</h1>
+      <p class="sub" style="margin-bottom:16px">참고만 하세요 — 정답은 없습니다. 당신만의 문장이 가장 좋아요.</p>
+
+      <div class="guide-block">
+        <div class="guide-h"><span class="badge t">진실 4</span> 믿기 어려운 진짜 이야기</div>
+        <ul>
+          <li>남들이 잘 안 믿는 나의 진짜 경험 (여행, 사건, 우연)</li>
+          <li>의외의 특기·자격·이력</li>
+          <li>나를 아는 사람만 아는 학창 시절 사실</li>
+          <li>가족·취미에 얽힌 특이한 이야기</li>
+        </ul>
+        <p class="guide-tip">💡 진실이 이미 놀라우면, 굳이 꾸미지 않아도 상대가 헷갈려 합니다.</p>
+      </div>
+
+      <div class="guide-block">
+        <div class="guide-h"><span class="badge l">거짓 3</span> 그럴듯한 거짓말</div>
+        <ul>
+          <li><b>경험형</b> — "나는 ___한 적이 있다" (시기·장소를 미리 정해두기)</li>
+          <li><b>능력형</b> — "나는 ___를 할 줄 안다" (시연 요구를 어떻게 피할지 준비)</li>
+          <li><b>관계·이력형</b> — "나는 ___였다 / ___가 있다"</li>
+        </ul>
+        <p class="guide-tip">💡 심문받으면 즉석에서 디테일을 지어내야 해요. 버틸 수 있는 거짓을 고르세요.</p>
+      </div>
+
+      <div class="guide-block" style="border:none;background:rgba(217,164,65,.08)">
+        <div class="guide-h" style="color:var(--gold)">🎭 게임의 단 하나의 규칙</div>
+        <p style="font-size:13.5px;margin-top:4px">당신이 신경 쓸 것은 <b>거짓 세 문장뿐</b>입니다. 진실에 대한 답은 아껴도 되지만, 지어내지는 마세요. 그래야 게임이 끝나고 서로에 대해 진짜를 알게 됩니다.</p>
+      </div>
+
+      <button class="btn" style="margin-top:16px" onclick="closeGuide()">이해했어요</button>
     </div>
   </div>
 
@@ -342,17 +392,6 @@ let settledLocal = load('settled') || {};   // meetingId → true (정산 중복
 let lastRenderedPhase = '';
 
 const BET = { hi:{label:'🔥 확신한다', amt:30}, mid:{label:'🤔 아마도', amt:20}, lo:{label:'🎲 찍는다', amt:10} };
-const GUIDE_T = [
-  '남들이 잘 안 믿는 나의 <b>진짜 경험</b>은? (여행, 사건, 우연)',
-  '나의 <b>의외의 특기·자격·이력</b>은?',
-  '학창 시절, <b>나를 아는 사람만 아는 사실</b>은?',
-  '가족·취미에 얽힌 <b>특이한 이야기</b>는?',
-];
-const GUIDE_L = [
-  '<b>경험형 거짓</b> — "나는 ___한 적이 있다" 꼴로. 시기·장소를 미리 정해두세요.',
-  '<b>능력형 거짓</b> — "나는 ___를 할 줄 안다" 꼴로. 시연 요구를 어떻게 피할지 준비!',
-  '<b>관계·이력형 거짓</b> — "나는 ___였다 / ___가 있다" 꼴로.',
-];
 
 /* ══════════ 유틸 ══════════ */
 const $ = id => document.getElementById(id);
@@ -364,6 +403,14 @@ function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.r
   $(id).classList.add('active'); }
 function save(k,v){ localStorage.setItem('7s_'+k, JSON.stringify(v)); }
 function load(k){ try{ return JSON.parse(localStorage.getItem('7s_'+k)); }catch(e){ return null; } }
+function del(k){ localStorage.removeItem('7s_'+k); }
+// 관리자가 전체 리셋(세대 증가)하면 이 기기의 이전 행사 흔적을 모두 지우고 새로고침
+function wipeLocalForNewGeneration(newGen){
+  ['slots','settled','name','gen'].forEach(del);
+  save('gen', newGen);
+  toast('새 행사가 시작되어 초기화합니다');
+  setTimeout(()=>location.reload(), 800);
+}
 function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
 function pick(a,n){ return shuffle(a).slice(0,n); }
 const setts = () => (cfg && cfg.settings) || { initialCoin:100, ticketCount:2, ticketCost:20, refillFloor:10, betUnlockSec:60, eventCode:'' };
@@ -375,6 +422,17 @@ onAuthStateChanged(auth, async user => {
   // 설정 실시간 구독
   onSnapshot(doc(db,'config','game'), snap => {
     cfg = snap.exists() ? snap.data() : null;
+    // 세대(generation) 감지: 관리자가 전체 리셋하면 세대가 오른다 → 이 기기의 로컬 데이터 폐기
+    if(cfg && typeof cfg.generation!=='undefined'){
+      const localGen = load('gen');
+      if(localGen===null){
+        save('gen', cfg.generation);   // 최초 접속 시 현재 세대 기록
+      } else if(localGen !== cfg.generation){
+        // 새 세대 시작 — 이전 행사의 로컬 흔적을 모두 지우고 새로 시작
+        wipeLocalForNewGeneration(cfg.generation);
+        return;
+      }
+    }
     $('notice').style.display = cfg && cfg.notice ? 'block' : 'none';
     if(cfg && cfg.notice) $('notice').textContent = '📢 ' + cfg.notice;
     route();
@@ -459,12 +517,13 @@ window.openSheet = function(i){
   const s = localSlots[i], lieN=i-4, tN=i;
   $('sheet-eyebrow').textContent = s.isLie ? `거짓 ${lieN+1} / 3` : `진실 ${tN+1} / 4`;
   $('sheet-title').textContent = s.isLie ? '그럴듯한 거짓을 지어볼까요' : '믿기 어려운 진실을 꺼내볼까요';
-  $('sheet-guide').innerHTML = s.isLie ? GUIDE_L[lieN] : GUIDE_T[tN];
   $('sheet-input').value = s.text;
   $('sheet-bg').classList.add('open');
   setTimeout(()=>$('sheet-input').focus(),150);
 };
 window.closeSheet = function(){ $('sheet-bg').classList.remove('open'); };
+window.openGuide = function(){ $('guide-bg').classList.add('open'); };
+window.closeGuide = function(){ $('guide-bg').classList.remove('open'); };
 window.saveStatement = async function(){
   const v = $('sheet-input').value.trim();
   if(!v){ toast('문장을 입력해주세요'); return; }
