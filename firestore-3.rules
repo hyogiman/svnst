@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function authed() { return request.auth != null; }
+    function isAdmin() {
+      return authed() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // 게임 설정·단계·공지 — 읽기는 전원, 쓰기는 관리자만
+    match /config/{docId} {
+      allow read: if authed();
+      allow write: if isAdmin();
+    }
+
+    // 관리자 명단 — Firebase 콘솔에서만 등록 (앱에서 쓰기 불가)
+    match /admins/{adminId} {
+      allow read: if authed();
+      allow write: if false;
+    }
+
+    // 참가자 — 본인 문서만 생성/수정, 관리자는 제외/부활 가능
+    match /participants/{uid} {
+      allow read: if authed();
+      allow create: if authed() && request.auth.uid == uid;
+      allow update: if (authed() && request.auth.uid == uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 진술 문장 (텍스트만, 셔플 저장) — 전원 읽기, 본인만 쓰기, 관리자 삭제 가능
+    match /statements/{uid} {
+      allow read: if authed();
+      allow write: if authed() && request.auth.uid == uid;
+      allow delete: if (authed() && request.auth.uid == uid) || isAdmin();
+    }
+
+    // ★ 정답 (거짓 문장 id) — 참가자는 본인 것만 읽기 (서로의 정답을 못 봄)
+    //   관리자(운영자)는 참가자가 아니므로 읽기·삭제 허용 (리셋·집계용)
+    match /answers/{uid} {
+      allow read: if (authed() && request.auth.uid == uid) || isAdmin();
+      allow write: if (authed() && request.auth.uid == uid) || isAdmin();
+    }
+
+    // 만남 — 당사자 두 명만 수정 가능
+    match /meetings/{mid} {
+      allow read: if authed();
+      allow create: if authed() && request.auth.uid == request.resource.data.a;
+      allow update: if authed() && request.auth.uid in resource.data.members;
+      allow delete: if isAdmin();
+    }
+
+    // 배팅 로그 ('믿기 힘든 진실상' 집계용) — 쓰기는 전원, 읽기·삭제는 관리자만
+    match /betlog/{logId} {
+      allow create: if authed();
+      allow read: if isAdmin();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}
