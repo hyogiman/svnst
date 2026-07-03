@@ -223,7 +223,8 @@
     <div class="logo-sub">일곱 개의 진술 — 당신의 일곱 문장이 당신을 말해줍니다</div>
     <div class="field"><label>행사 코드</label><input id="in-code" placeholder="진행자에게 안내받은 코드" autocomplete="off"></div>
     <div class="field"><label>이름</label><input id="in-name" placeholder="예: 정인혁" autocomplete="off"></div>
-    <div class="field"><label>소속</label><input id="in-team" placeholder="예: 조직문화팀" autocomplete="off"></div>
+    <div class="field" id="field-team"><label>소속</label><input id="in-team" placeholder="예: 조직문화팀" autocomplete="off"></div>
+    <div class="field"><label>직위 / 직책</label><input id="in-position" placeholder="예: 책임 / 팀장" autocomplete="off"></div>
     <div style="height:10px"></div>
     <button class="btn" id="btn-login" onclick="doLogin()">입장하기</button>
     <p class="sub" style="text-align:center;margin-top:14px">같은 휴대폰·브라우저로 다시 접속하면<br>진행 상황이 자동으로 이어집니다</p>
@@ -233,7 +234,7 @@
   <section class="screen" id="writer">
     <div class="eyebrow">작가의 방</div>
     <h1 class="title">나의 일곱 문장</h1>
-    <p class="sub">진실 네개, 거짓 세개를 써 주세요. 게임 중엔 수정이 어렵습니다.</p>
+    <p class="sub">진실 네 개, 거짓 세 개. 심문을 버틸 수 있게 쓰세요.</p>
     <button class="btn ghost sm" style="margin-top:12px;align-self:flex-start" onclick="openGuide()">💡 작성 가이드 보기</button>
     <div class="progress-wrap">
       <div class="dots" id="dots"></div>
@@ -422,7 +423,7 @@ function wipeLocalForNewGeneration(newGen){
 }
 function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
 function pick(a,n){ return shuffle(a).slice(0,n); }
-const setts = () => (cfg && cfg.settings) || { initialCoin:100, ticketCount:2, ticketCost:20, refillFloor:10, betUnlockSec:60, eventCode:'' };
+const setts = () => (cfg && cfg.settings) || { initialCoin:100, ticketCount:2, ticketCost:20, refillFloor:10, betUnlockSec:60, eventCode:'', useTeam:true, showPosition:true };
 
 /* ══════════ 인증 & 부팅 ══════════ */
 onAuthStateChanged(auth, async user => {
@@ -444,6 +445,9 @@ onAuthStateChanged(auth, async user => {
     }
     $('notice').style.display = cfg && cfg.notice ? 'block' : 'none';
     if(cfg && cfg.notice) $('notice').textContent = '📢 ' + cfg.notice;
+    // 소속 입력칸: 관리자 설정(useTeam)이 false면 숨김
+    const useTeam = !cfg || !cfg.settings || cfg.settings.useTeam!==false;
+    const ft = $('field-team'); if(ft) ft.style.display = useTeam ? 'block' : 'none';
     route();
   });
   // 내 참가자 문서 구독 (재접속 시 자동 복귀)
@@ -479,14 +483,19 @@ function route(){
 window.doLogin = async function(){
   if(!uid){ toast('연결 중이에요, 잠시 후 다시 시도해주세요'); return; }
   if(!cfg){ toast('행사가 아직 열리지 않았어요 (관리자 미설정)'); return; }
-  const code = $('in-code').value.trim();
-  const nm = $('in-name').value.trim(), tm = $('in-team').value.trim();
-  if(setts().eventCode && code !== setts().eventCode){ toast('행사 코드가 올바르지 않아요'); return; }
-  if(!nm){ toast('이름을 입력해주세요'); return; }
-  $('btn-login').disabled = true;
   const s = setts();
+  const useTeam = s.useTeam!==false;
+  const code = $('in-code').value.trim();
+  const nm = $('in-name').value.trim();
+  const tm = useTeam ? $('in-team').value.trim() : '';
+  const pos = $('in-position').value.trim();
+  if(s.eventCode && code !== s.eventCode){ toast('행사 코드가 올바르지 않아요'); return; }
+  if(!nm){ toast('이름을 입력해주세요'); return; }
+  if(useTeam && !tm){ toast('소속을 입력해주세요'); return; }
+  if(!pos){ toast('직위 또는 직책을 입력해주세요'); return; }
+  $('btn-login').disabled = true;
   await setDoc(doc(db,'participants',uid), {
-    name:nm, team:tm||'', ready:false, done:0, alive:true, status:'idle',
+    name:nm, team:tm||'', position:pos||'', ready:false, done:0, alive:true, status:'idle',
     coin:s.initialCoin, tickets:s.ticketCount,
     recW:0, recL:0, recD:0, earnD:0, earnA:0, metWith:[],
     joinedAt: serverTimestamp(),
@@ -610,17 +619,27 @@ window.switchTab = function(t){
 };
 
 /* ══════════ 홈: 매칭 ══════════ */
+// 참가자 부제(소속·직위)를 관리자 설정에 따라 조합
+function personSubtitle(p){
+  const s = setts();
+  const parts = [];
+  if(s.useTeam!==false && p.team) parts.push(p.team);
+  if(s.showPosition!==false && p.position) parts.push(p.position);
+  return parts.join(' · ');
+}
 function renderPeople(){
   if(!me) return;
   const met = new Set(me.metWith||[]);
   const list = peopleCache.filter(p =>
     p.uid!==uid && p.ready && p.alive!==false && p.status==='idle' && !met.has(p.uid));
-  $('people').innerHTML = list.length ? list.map(p=>`
+  $('people').innerHTML = list.length ? list.map(p=>{
+    const sub = personSubtitle(p);
+    return `
     <div class="person">
       <div class="avatar">${esc(p.name[0])}</div>
-      <div class="info"><div class="nm">${esc(p.name)}</div><div class="tm">${esc(p.team)}</div></div>
+      <div class="info"><div class="nm">${esc(p.name)}</div>${sub?`<div class="tm">${esc(sub)}</div>`:''}</div>
       <button class="btn sm" onclick="requestMeet('${p.uid}')">요청</button>
-    </div>`).join('')
+    </div>`; }).join('')
   : `<div class="empty-hint">지금 만날 수 있는 사람이 없어요.<br>대화 중이거나, 이미 모두 만났을 수 있어요.</div>`;
 }
 window.requestMeet = async function(target){
